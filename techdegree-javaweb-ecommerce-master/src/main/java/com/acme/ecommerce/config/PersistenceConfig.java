@@ -12,17 +12,17 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 
 import javax.sql.DataSource;
 import java.util.Properties;
- 
+
 @Configuration
 @EnableTransactionManagement
 @EnableJpaRepositories("com.acme.ecommerce.repository")
 public class PersistenceConfig {
- 
+
     @Bean
     public DataSource dataSource() {
         return new EmbeddedDatabaseBuilder().setType(EmbeddedDatabaseType.H2).build();
     }
- 
+
     @Bean
     public LocalContainerEntityManagerFactoryBean entityManagerFactory() {
         LocalContainerEntityManagerFactoryBean entityManagerFactoryBean = new LocalContainerEntityManagerFactoryBean();
@@ -32,7 +32,7 @@ public class PersistenceConfig {
         entityManagerFactoryBean.setJpaProperties(jpaProperties());
         return entityManagerFactoryBean;
     }
- 
+
     private Properties jpaProperties() {
         Properties properties = new Properties();
         properties.setProperty("hibernate.hbm2ddl.auto", "create-drop");
@@ -41,7 +41,7 @@ public class PersistenceConfig {
         properties.setProperty("hibernate.format_sql", "false");
         return properties;
     }
- 
+
     @Bean
     public JpaTransactionManager transactionManager() {
         JpaTransactionManager transactionManager = new JpaTransactionManager();

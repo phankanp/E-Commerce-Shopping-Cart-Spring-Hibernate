@@ -38,304 +38,301 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebAppConfiguration
 public class CartControllerTest {
 
-	final String BASE_URL = "http://localhost:8080/";
+    static {
+        System.setProperty("properties.home", "properties");
+    }
+
+    final String BASE_URL = "http://localhost:8080/";
+    @Mock
+    private MockHttpSession session;
+    @Mock
+    private ProductService productService;
+    @Mock
+    private PurchaseService purchaseService;
+    @Mock
+    private ShoppingCart sCart;
+    @InjectMocks
+    private CartController cartController;
+    private MockMvc mockMvc;
+
+    @Before
+    public void setup() {
+        InternalResourceViewResolver viewResolver = new InternalResourceViewResolver();
+        viewResolver.setPrefix("/WEB-INF/");
+        viewResolver.setSuffix(".html");
+
+        MockitoAnnotations.initMocks(this);
+        mockMvc = MockMvcBuilders.standaloneSetup(cartController).setViewResolvers(viewResolver).build();
+    }
 
-	@Mock
-	private MockHttpSession session;
+    @Test
+    public void viewCartTest() throws Exception {
+        Product product = productBuilder();
 
-	@Mock
-	private ProductService productService;
-	@Mock
-	private PurchaseService purchaseService;
-	@Mock
-	private ShoppingCart sCart;
-	@InjectMocks
-	private CartController cartController;
+        when(productService.findById(1L)).thenReturn(product);
 
-	private MockMvc mockMvc;
+        Purchase purchase = purchaseBuilder(product);
 
-	static {
-		System.setProperty("properties.home", "properties");
-	}
+        when(sCart.getPurchase()).thenReturn(purchase);
+        mockMvc.perform(MockMvcRequestBuilders.get("/cart")).andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(view().name("cart"));
+    }
 
-	@Before
-	public void setup() {
-		InternalResourceViewResolver viewResolver = new InternalResourceViewResolver();
-		viewResolver.setPrefix("/WEB-INF/");
-		viewResolver.setSuffix(".html");
+    @Test
+    public void viewCartNoPurchasesTest() throws Exception {
 
-		MockitoAnnotations.initMocks(this);
-		mockMvc = MockMvcBuilders.standaloneSetup(cartController).setViewResolvers(viewResolver).build();
-	}
+        when(sCart.getPurchase()).thenReturn(null);
+        mockMvc.perform(MockMvcRequestBuilders.get("/cart")).andDo(print())
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/error"));
+    }
 
-	@Test
-	public void viewCartTest() throws Exception {
-		Product product = productBuilder();
+    @Test
+    public void addToCartTest() throws Exception {
+        Product product = productBuilder();
+
+        when(productService.findById(1L)).thenReturn(product);
 
-		when(productService.findById(1L)).thenReturn(product);
+        mockMvc.perform(MockMvcRequestBuilders.post("/cart/add").param("quantity", "1").param("productId", "1"))
+                .andDo(print())
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/product/"));
+    }
 
-		Purchase purchase = purchaseBuilder(product);
+    @Test
+    public void quantityExceedsStockProductDetailTest() throws Exception {
+        Product product = productBuilder();
 
-		when(sCart.getPurchase()).thenReturn(purchase);
-		mockMvc.perform(MockMvcRequestBuilders.get("/cart")).andDo(print())
-				.andExpect(status().isOk())
-				.andExpect(view().name("cart"));
-	}
+        when(productService.findById(1L)).thenReturn(product);
 
-	@Test
-	public void viewCartNoPurchasesTest() throws Exception {
+        doThrow(new QuantityException()).when(productService).checkQuantity(anyInt(), anyInt());
 
-		when(sCart.getPurchase()).thenReturn(null);
-		mockMvc.perform(MockMvcRequestBuilders.get("/cart")).andDo(print())
-				.andExpect(status().is3xxRedirection())
-				.andExpect(redirectedUrl("/error"));
-	}
+        mockMvc.perform(MockMvcRequestBuilders.post("/cart/add").param("quantity", "6").param("productId", "1"))
+                .andDo(print())
+                .andExpect(flash().attributeExists("error"))
+                .andExpect(redirectedUrl("/product/detail/1"));
+    }
 
-	@Test
-	public void addToCartTest() throws Exception {
-		Product product = productBuilder();
+    @Test
+    public void quantityExceedsStockCartViewTest() throws Exception {
+        Product product = productBuilder();
 
-		when(productService.findById(1L)).thenReturn(product);
+        when(productService.findById(1L)).thenReturn(product);
 
-		mockMvc.perform(MockMvcRequestBuilders.post("/cart/add").param("quantity", "1").param("productId", "1"))
-				.andDo(print())
-				.andExpect(status().is3xxRedirection())
-				.andExpect(redirectedUrl("/product/"));
-	}
+        doThrow(new QuantityException()).when(productService).checkQuantity(anyInt(), anyInt());
 
-	@Test
-	public void quantityExceedsStockProductDetailTest() throws Exception {
-		Product product = productBuilder();
+        mockMvc.perform(MockMvcRequestBuilders.post("/cart/update").param("quantity", "6").param("productId", "1"))
+                .andDo(print())
+                .andExpect(flash().attributeExists("error"))
+                .andExpect(redirectedUrl("/cart"));
+    }
 
-		when(productService.findById(1L)).thenReturn(product);
+    @Test
+    public void headerCartShowsValueTest() throws Exception {
+        Product product = productBuilder();
 
-		doThrow(new QuantityException()).when(productService).checkQuantity(anyInt(), anyInt());
+        when(productService.findById(1L)).thenReturn(product);
 
-		mockMvc.perform(MockMvcRequestBuilders.post("/cart/add").param("quantity", "6").param("productId", "1"))
-				.andDo(print())
-				.andExpect(flash().attributeExists("error"))
-				.andExpect(redirectedUrl("/product/detail/1"));
-	}
+        Purchase purchase = purchaseBuilder(product);
 
-	@Test
-	public void quantityExceedsStockCartViewTest() throws Exception {
-		Product product = productBuilder();
+        when(sCart.getPurchase()).thenReturn(purchase);
 
-		when(productService.findById(1L)).thenReturn(product);
+        mockMvc.perform(MockMvcRequestBuilders.get("/cart"))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(model().attribute("subTotal", product.getPrice()));
 
-		doThrow(new QuantityException()).when(productService).checkQuantity(anyInt(), anyInt());
+    }
 
-		mockMvc.perform(MockMvcRequestBuilders.post("/cart/update").param("quantity", "6").param("productId", "1"))
-				.andDo(print())
-				.andExpect(flash().attributeExists("error"))
-				.andExpect(redirectedUrl("/cart"));
-	}
+    @Test
+    public void addUnknownToCartTest() throws Exception {
+        when(productService.findById(1L)).thenReturn(null);
 
-	@Test
-	public void headerCartShowsValueTest() throws Exception {
-		Product product = productBuilder();
+        mockMvc.perform(MockMvcRequestBuilders.post("/cart/add").param("quantity", "1").param("productId", "1"))
+                .andDo(print())
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/error"));
+    }
 
-		when(productService.findById(1L)).thenReturn(product);
+    @Test
+    public void updateCartTest() throws Exception {
+        Product product = productBuilder();
 
-		Purchase purchase = purchaseBuilder(product);
+        when(productService.findById(1L)).thenReturn(product);
 
-		when(sCart.getPurchase()).thenReturn(purchase);
+        Purchase purchase = purchaseBuilder(product);
 
-		mockMvc.perform(MockMvcRequestBuilders.get("/cart"))
-				.andDo(print())
-				.andExpect(status().isOk())
-				.andExpect(model().attribute("subTotal", product.getPrice()));
+        when(sCart.getPurchase()).thenReturn(purchase);
 
-	}
+        mockMvc.perform(MockMvcRequestBuilders.post("/cart/update").param("newQuantity", "2").param("productId", "1"))
+                .andDo(print())
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/cart"));
+    }
 
-	@Test
-	public void addUnknownToCartTest() throws Exception {
-		when(productService.findById(1L)).thenReturn(null);
+    @Test
+    public void updateUnknownCartTest() throws Exception {
+        when(productService.findById(1L)).thenReturn(null);
 
-		mockMvc.perform(MockMvcRequestBuilders.post("/cart/add").param("quantity", "1").param("productId", "1"))
-				.andDo(print())
-				.andExpect(status().is3xxRedirection())
-				.andExpect(redirectedUrl("/error"));
-	}
+        mockMvc.perform(MockMvcRequestBuilders.post("/cart/update").param("newQuantity", "2").param("productId", "1"))
+                .andDo(print())
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/error"));
+    }
 
-	@Test
-	public void updateCartTest() throws Exception {
-		Product product = productBuilder();
+    @Test
+    public void updateInvalidCartTest() throws Exception {
 
-		when(productService.findById(1L)).thenReturn(product);
+        when(sCart.getPurchase()).thenReturn(null);
 
-		Purchase purchase = purchaseBuilder(product);
+        mockMvc.perform(MockMvcRequestBuilders.post("/cart/update").param("newQuantity", "2").param("productId", "1"))
+                .andDo(print())
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/error"));
+    }
 
-		when(sCart.getPurchase()).thenReturn(purchase);
+    @Test
+    public void removeFromCartTest() throws Exception {
+        Product product = productBuilder();
 
-		mockMvc.perform(MockMvcRequestBuilders.post("/cart/update").param("newQuantity", "2").param("productId", "1"))
-				.andDo(print())
-				.andExpect(status().is3xxRedirection())
-				.andExpect(redirectedUrl("/cart"));
-	}
+        Product product2 = productBuilder();
+        product2.setId(2L);
 
-	@Test
-	public void updateUnknownCartTest() throws Exception {
-		when(productService.findById(1L)).thenReturn(null);
+        when(productService.findById(1L)).thenReturn(product);
 
-		mockMvc.perform(MockMvcRequestBuilders.post("/cart/update").param("newQuantity", "2").param("productId", "1"))
-				.andDo(print())
-				.andExpect(status().is3xxRedirection())
-				.andExpect(redirectedUrl("/error"));
-	}
+        ProductPurchase pp = new ProductPurchase();
+        pp.setProductPurchaseId(1L);
+        pp.setQuantity(1);
+        pp.setProduct(product);
 
-	@Test
-	public void updateInvalidCartTest() throws Exception {
+        ProductPurchase pp2 = new ProductPurchase();
+        pp2.setProductPurchaseId(2L);
+        pp2.setQuantity(2);
+        pp2.setProduct(product2);
 
-		when(sCart.getPurchase()).thenReturn(null);
+        List<ProductPurchase> ppList = new ArrayList<ProductPurchase>();
+        ppList.add(pp);
+        ppList.add(pp2);
 
-		mockMvc.perform(MockMvcRequestBuilders.post("/cart/update").param("newQuantity", "2").param("productId", "1"))
-				.andDo(print())
-				.andExpect(status().is3xxRedirection())
-				.andExpect(redirectedUrl("/error"));
-	}
+        Purchase purchase = new Purchase();
+        purchase.setId(1L);
+        purchase.setProductPurchases(ppList);
 
-	@Test
-	public void removeFromCartTest() throws Exception {
-		Product product = productBuilder();
+        when(sCart.getPurchase()).thenReturn(purchase);
 
-		Product product2 = productBuilder();
-		product2.setId(2L);
+        when(purchaseService.save(purchase)).thenReturn(purchase);
 
-		when(productService.findById(1L)).thenReturn(product);
+        mockMvc.perform(MockMvcRequestBuilders.post("/cart/remove").param("productId", "1")).andDo(print())
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/cart"));
+    }
 
-		ProductPurchase pp = new ProductPurchase();
-		pp.setProductPurchaseId(1L);
-		pp.setQuantity(1);
-		pp.setProduct(product);
+    @Test
+    public void removeUnknownCartTest() throws Exception {
+        when(productService.findById(1L)).thenReturn(null);
 
-		ProductPurchase pp2 = new ProductPurchase();
-		pp2.setProductPurchaseId(2L);
-		pp2.setQuantity(2);
-		pp2.setProduct(product2);
+        mockMvc.perform(MockMvcRequestBuilders.post("/cart/remove").param("productId", "1")).andDo(print())
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/error"));
+    }
 
-		List<ProductPurchase> ppList = new ArrayList<ProductPurchase>();
-		ppList.add(pp);
-		ppList.add(pp2);
+    @Test
+    public void removeInvalidCartTest() throws Exception {
 
-		Purchase purchase = new Purchase();
-		purchase.setId(1L);
-		purchase.setProductPurchases(ppList);
+        when(sCart.getPurchase()).thenReturn(null);
 
-		when(sCart.getPurchase()).thenReturn(purchase);
+        mockMvc.perform(MockMvcRequestBuilders.post("/cart/remove").param("productId", "1")).andDo(print())
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/error"));
+    }
 
-		when(purchaseService.save(purchase)).thenReturn(purchase);
+    @Test
+    public void removeLastFromCartTest() throws Exception {
+        Product product = productBuilder();
 
-		mockMvc.perform(MockMvcRequestBuilders.post("/cart/remove").param("productId", "1")).andDo(print())
-				.andExpect(status().is3xxRedirection())
-				.andExpect(redirectedUrl("/cart"));
-	}
+        when(productService.findById(1L)).thenReturn(product);
 
-	@Test
-	public void removeUnknownCartTest() throws Exception {
-		when(productService.findById(1L)).thenReturn(null);
+        Purchase purchase = purchaseBuilder(product);
 
-		mockMvc.perform(MockMvcRequestBuilders.post("/cart/remove").param("productId", "1")).andDo(print())
-				.andExpect(status().is3xxRedirection())
-				.andExpect(redirectedUrl("/error"));
-	}
+        when(sCart.getPurchase()).thenReturn(purchase);
 
-	@Test
-	public void removeInvalidCartTest() throws Exception {
+        when(purchaseService.save(purchase)).thenReturn(purchase);
 
-		when(sCart.getPurchase()).thenReturn(null);
+        mockMvc.perform(MockMvcRequestBuilders.post("/cart/remove").param("productId", "1")).andDo(print())
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/product/"));
+    }
 
-		mockMvc.perform(MockMvcRequestBuilders.post("/cart/remove").param("productId", "1")).andDo(print())
-				.andExpect(status().is3xxRedirection())
-				.andExpect(redirectedUrl("/error"));
-	}
+    @Test
+    public void emptyCartTest() throws Exception {
+        Product product = productBuilder();
 
-	@Test
-	public void removeLastFromCartTest() throws Exception {
-		Product product = productBuilder();
+        Product product2 = productBuilder();
+        product2.setId(2L);
 
-		when(productService.findById(1L)).thenReturn(product);
+        when(productService.findById(1L)).thenReturn(product);
 
-		Purchase purchase = purchaseBuilder(product);
+        ProductPurchase pp = new ProductPurchase();
+        pp.setProductPurchaseId(1L);
+        pp.setQuantity(1);
+        pp.setProduct(product);
 
-		when(sCart.getPurchase()).thenReturn(purchase);
+        ProductPurchase pp2 = new ProductPurchase();
+        pp2.setProductPurchaseId(2L);
+        pp2.setQuantity(2);
+        pp2.setProduct(product2);
 
-		when(purchaseService.save(purchase)).thenReturn(purchase);
+        List<ProductPurchase> ppList = new ArrayList<ProductPurchase>();
+        ppList.add(pp);
+        ppList.add(pp2);
 
-		mockMvc.perform(MockMvcRequestBuilders.post("/cart/remove").param("productId", "1")).andDo(print())
-				.andExpect(status().is3xxRedirection())
-				.andExpect(redirectedUrl("/product/"));
-	}
+        Purchase purchase = new Purchase();
+        purchase.setId(1L);
+        purchase.setProductPurchases(ppList);
 
-	@Test
-	public void emptyCartTest() throws Exception {
-		Product product = productBuilder();
+        when(sCart.getPurchase()).thenReturn(purchase);
 
-		Product product2 = productBuilder();
-		product2.setId(2L);
+        when(purchaseService.save(purchase)).thenReturn(purchase);
 
-		when(productService.findById(1L)).thenReturn(product);
+        mockMvc.perform(MockMvcRequestBuilders.post("/cart/empty")).andDo(print())
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/product/"));
+    }
 
-		ProductPurchase pp = new ProductPurchase();
-		pp.setProductPurchaseId(1L);
-		pp.setQuantity(1);
-		pp.setProduct(product);
+    @Test
+    public void emptyInvalidCartTest() throws Exception {
 
-		ProductPurchase pp2 = new ProductPurchase();
-		pp2.setProductPurchaseId(2L);
-		pp2.setQuantity(2);
-		pp2.setProduct(product2);
+        when(sCart.getPurchase()).thenReturn(null);
 
-		List<ProductPurchase> ppList = new ArrayList<ProductPurchase>();
-		ppList.add(pp);
-		ppList.add(pp2);
+        mockMvc.perform(MockMvcRequestBuilders.post("/cart/empty")).andDo(print())
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/error"));
+    }
 
-		Purchase purchase = new Purchase();
-		purchase.setId(1L);
-		purchase.setProductPurchases(ppList);
+    private Product productBuilder() {
+        Product product = new Product();
+        product.setId(1L);
+        product.setDesc("TestDesc");
+        product.setName("TestName");
+        product.setPrice(new BigDecimal(1.99));
+        product.setQuantity(3);
+        product.setFullImageName("imagename");
+        product.setThumbImageName("imagename");
+        return product;
+    }
 
-		when(sCart.getPurchase()).thenReturn(purchase);
+    private Purchase purchaseBuilder(Product product) {
+        ProductPurchase pp = new ProductPurchase();
+        pp.setProductPurchaseId(1L);
+        pp.setQuantity(1);
+        pp.setProduct(product);
+        List<ProductPurchase> ppList = new ArrayList<ProductPurchase>();
+        ppList.add(pp);
 
-		when(purchaseService.save(purchase)).thenReturn(purchase);
-
-		mockMvc.perform(MockMvcRequestBuilders.post("/cart/empty")).andDo(print())
-				.andExpect(status().is3xxRedirection())
-				.andExpect(redirectedUrl("/product/"));
-	}
-
-	@Test
-	public void emptyInvalidCartTest() throws Exception {
-
-		when(sCart.getPurchase()).thenReturn(null);
-
-		mockMvc.perform(MockMvcRequestBuilders.post("/cart/empty")).andDo(print())
-				.andExpect(status().is3xxRedirection())
-				.andExpect(redirectedUrl("/error"));
-	}
-
-	private Product productBuilder() {
-		Product product = new Product();
-		product.setId(1L);
-		product.setDesc("TestDesc");
-		product.setName("TestName");
-		product.setPrice(new BigDecimal(1.99));
-		product.setQuantity(3);
-		product.setFullImageName("imagename");
-		product.setThumbImageName("imagename");
-		return product;
-	}
-
-	private Purchase purchaseBuilder(Product product) {
-		ProductPurchase pp = new ProductPurchase();
-		pp.setProductPurchaseId(1L);
-		pp.setQuantity(1);
-		pp.setProduct(product);
-		List<ProductPurchase> ppList = new ArrayList<ProductPurchase>();
-		ppList.add(pp);
-
-		Purchase purchase = new Purchase();
-		purchase.setId(1L);
-		purchase.setProductPurchases(ppList);
-		return purchase;
-	}
+        Purchase purchase = new Purchase();
+        purchase.setId(1L);
+        purchase.setProductPurchases(ppList);
+        return purchase;
+    }
 }

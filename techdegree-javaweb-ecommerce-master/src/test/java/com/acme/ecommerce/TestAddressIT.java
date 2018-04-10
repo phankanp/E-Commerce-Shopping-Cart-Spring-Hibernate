@@ -17,7 +17,7 @@ import org.springframework.test.context.support.DependencyInjectionTestExecution
 import org.springframework.test.context.transaction.TransactionalTestExecutionListener;
 
 import static org.assertj.core.api.Assertions.assertThat;
- 
+
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = {PersistenceConfig.class})
 @TestExecutionListeners({DependencyInjectionTestExecutionListener.class,
@@ -25,40 +25,40 @@ import static org.assertj.core.api.Assertions.assertThat;
         DbUnitTestExecutionListener.class})
 @DatabaseSetup("/it-products.xml")
 public class TestAddressIT {
- 
+
     @Autowired
     private AddressRepository repository;
-    
+
     @Test
     public void findAll_ShouldReturnThreeAddressEntry() {
         Iterable<Address> searchResults = repository.findAll();
         assertThat(searchResults).hasSize(3);
     }
-     
+
     @Test
     public void findOne_ShouldReturnSecondAddressEntry() {
-    	Address searchResults = repository.findOne(new Long(3));
- 
+        Address searchResults = repository.findOne(new Long(3));
+
         assertThat(searchResults.getStreetAddress().equalsIgnoreCase("Street Address 3"));
     }
-    
+
     @Test
-    @ExpectedDatabase(value="/save-address.xml", assertionMode=DatabaseAssertionMode.NON_STRICT)
+    @ExpectedDatabase(value = "/save-address.xml", assertionMode = DatabaseAssertionMode.NON_STRICT)
     public void saveOne_ShouldAddAfterInitialRows() {
-    	Address newAddress = new Address();
-    	
-    	newAddress.setFirstName("First");
-    	newAddress.setLastName("Last");
-    	newAddress.setCity("City");
-    	newAddress.setCountry("Country");
-    	newAddress.setEmail("email@address.com");
-    	newAddress.setPhoneNumber("1234567890");
-    	newAddress.setState("AA");
-    	newAddress.setStreetAddress("123 Street Address");
-    	newAddress.setZipCode("12345");
-    	
-    	Address savedAddress = repository.save(newAddress);
-    	
-    	assertThat(savedAddress.getId()).isNotNull();
+        Address newAddress = new Address();
+
+        newAddress.setFirstName("First");
+        newAddress.setLastName("Last");
+        newAddress.setCity("City");
+        newAddress.setCountry("Country");
+        newAddress.setEmail("email@address.com");
+        newAddress.setPhoneNumber("1234567890");
+        newAddress.setState("AA");
+        newAddress.setStreetAddress("123 Street Address");
+        newAddress.setZipCode("12345");
+
+        Address savedAddress = repository.save(newAddress);
+
+        assertThat(savedAddress.getId()).isNotNull();
     }
 }

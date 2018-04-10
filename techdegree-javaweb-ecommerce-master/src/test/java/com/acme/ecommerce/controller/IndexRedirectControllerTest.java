@@ -20,36 +20,34 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringApplicationConfiguration(classes = Application.class)
 @WebAppConfiguration
 public class IndexRedirectControllerTest {
-	
-	 final String BASE_URL = "http://localhost:8080/";
-	 
-	 @InjectMocks
-	 private IndexRedirectController indexRedirectController;
-	 
-	 private MockMvc mockMvc;
 
-	 static {
-		 System.setProperty("properties.home", "properties");
-	 }
-	 
-	 @Before
-	 public void setup() {
-		 MockitoAnnotations.initMocks(this);
-		 mockMvc = MockMvcBuilders.standaloneSetup(indexRedirectController).build();
-	 }
+    static {
+        System.setProperty("properties.home", "properties");
+    }
 
-	 @Test
-	 public void redirectHome() throws Exception {
-	  mockMvc.perform(MockMvcRequestBuilders.get("/"))
-	   .andExpect(status().is3xxRedirection())
-	   .andExpect(redirectedUrl("/product/"));
-	 }
-	 
-	 @Test
-	 public void redirectIndex() throws Exception {
-	  mockMvc.perform(MockMvcRequestBuilders.get("/index.html"))
-	   .andExpect(status().is3xxRedirection())
-	   .andExpect(redirectedUrl("/product/"));
-	 }
+    final String BASE_URL = "http://localhost:8080/";
+    @InjectMocks
+    private IndexRedirectController indexRedirectController;
+    private MockMvc mockMvc;
+
+    @Before
+    public void setup() {
+        MockitoAnnotations.initMocks(this);
+        mockMvc = MockMvcBuilders.standaloneSetup(indexRedirectController).build();
+    }
+
+    @Test
+    public void redirectHome() throws Exception {
+        mockMvc.perform(MockMvcRequestBuilders.get("/"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/product/"));
+    }
+
+    @Test
+    public void redirectIndex() throws Exception {
+        mockMvc.perform(MockMvcRequestBuilders.get("/index.html"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/product/"));
+    }
 
 }

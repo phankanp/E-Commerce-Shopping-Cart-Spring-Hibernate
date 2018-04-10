@@ -1,6 +1,9 @@
 package com.acme.ecommerce.controller;
 
-import com.acme.ecommerce.domain.*;
+import com.acme.ecommerce.domain.Product;
+import com.acme.ecommerce.domain.ProductPurchase;
+import com.acme.ecommerce.domain.Purchase;
+import com.acme.ecommerce.domain.ShoppingCart;
 import com.acme.ecommerce.service.ProductService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,115 +30,118 @@ import java.math.BigDecimal;
 @RequestMapping("/product")
 @Scope("request")
 public class ProductController {
-	
-	final Logger logger = LoggerFactory.getLogger(ProductController.class);
-	
-	private static final int INITIAL_PAGE = 0;
-	private static final int PAGE_SIZE = 5;
-	
-	@Autowired
-	ProductService productService;
-	
-	@Autowired
-	HttpSession session;
 
-	@Autowired
-	ShoppingCart sCart;
+    private static final int INITIAL_PAGE = 0;
+    private static final int PAGE_SIZE = 5;
+    final Logger logger = LoggerFactory.getLogger(ProductController.class);
+    @Autowired
+    ProductService productService;
 
-	@Value("${imagePath:/images/}")
-	String imagePath;
-	
+    @Autowired
+    HttpSession session;
+
+    @Autowired
+    ShoppingCart sCart;
+
+    @Value("${imagePath:/images/}")
+    String imagePath;
+
     @RequestMapping("/")
     public String index(Model model, @RequestParam(value = "page", required = false) Integer page) {
-		logger.debug("Getting Product List");
-		logger.debug("Session ID = " + session.getId());
+        logger.debug("Getting Product List");
+        logger.debug("Session ID = " + session.getId());
 
-		Purchase purchase = sCart.getPurchase();
-		BigDecimal subTotal = new BigDecimal(0);
+        Purchase purchase = sCart.getPurchase();
+        BigDecimal subTotal = new BigDecimal(0);
 
-		model.addAttribute("purchase", purchase);
-
-		viewSubtotal(model, purchase, subTotal);
+        model.addAttribute("purchase", purchase);
 
 
-		// Evaluate page. If requested parameter is null or less than 0 (to
-		// prevent exception), return initial size. Otherwise, return value of
-		// param. decreased by 1.
-		int evalPage = (page == null || page < 1) ? INITIAL_PAGE : page - 1;
+        viewSubtotal(model, purchase, subTotal);
 
-		Page<Product> products = productService.findAll(new PageRequest(evalPage, PAGE_SIZE));
 
-		model.addAttribute("products", products);
+        // Evaluate page. If requested parameter is null or less than 0 (to
+        // prevent exception), return initial size. Otherwise, return value of
+        // param. decreased by 1.
+        int evalPage = (page == null || page < 1) ? INITIAL_PAGE : page - 1;
 
-		return "index";
-	}
-    
+        Page<Product> products = productService.findAll(new PageRequest(evalPage, PAGE_SIZE));
+
+        model.addAttribute("products", products);
+
+        return "index";
+    }
+
     @RequestMapping(path = "/detail/{id}", method = RequestMethod.GET)
     public String productDetail(@PathVariable long id, Model model) {
-    	logger.debug("Details for Product " + id);
+        logger.debug("Details for Product " + id);
 
 
-		Purchase purchase = sCart.getPurchase();
-		BigDecimal subTotal = new BigDecimal(0);
+        Purchase purchase = sCart.getPurchase();
+        BigDecimal subTotal = new BigDecimal(0);
 
-		model.addAttribute("purchase", purchase);
+        model.addAttribute("purchase", purchase);
 
-		viewSubtotal(model, purchase, subTotal);
+        viewSubtotal(model, purchase, subTotal);
 
-		Product returnProduct = productService.findById(id);
-    	if (returnProduct != null) {
-    		model.addAttribute("product", returnProduct);
-    		ProductPurchase productPurchase = new ProductPurchase();
-    		productPurchase.setProduct(returnProduct);
-    		productPurchase.setQuantity(1);
-    		model.addAttribute("productPurchase", productPurchase);
-    	} else {
-    		logger.error("Product " + id + " Not Found!");
-    		return "redirect:/error";
-    	}
+        Product returnProduct = productService.findById(id);
+        if (returnProduct != null) {
+            model.addAttribute("product", returnProduct);
+            ProductPurchase productPurchase = new ProductPurchase();
+            productPurchase.setProduct(returnProduct);
+            productPurchase.setQuantity(1);
+            model.addAttribute("productPurchase", productPurchase);
+        } else {
+            logger.error("Product " + id + " Not Found!");
+            return "redirect:/error";
+        }
 
         return "product_detail";
     }
 
-	private void viewSubtotal(Model model, Purchase purchase, BigDecimal subTotal) {
-		if (purchase != null) {
-			for (ProductPurchase pp : purchase.getProductPurchases()) {
-				logger.debug("cart has " + pp.getQuantity() + " of " + pp.getProduct().getName());
-				subTotal = subTotal.add(pp.getProduct().getPrice().multiply(new BigDecimal(pp.getQuantity())));
-			}
+    private void viewSubtotal(Model model, Purchase purchase, BigDecimal subTotal) {
+        if (purchase != null) {
+            for (ProductPurchase pp : purchase.getProductPurchases()) {
+                logger.debug("cart has " + pp.getQuantity() + " of " + pp.getProduct().getName());
+                subTotal = subTotal.add(pp.getProduct().getPrice().multiply(new BigDecimal(pp.getQuantity())));
+            }
 
-			model.addAttribute("subTotal", subTotal);
-		}
-	}
+            model.addAttribute("subTotal", subTotal);
+            if (subTotal.compareTo(BigDecimal.ZERO) != 0) {
+                session.setAttribute("viewTotal", subTotal);
+                model.addAttribute("viewTotal", subTotal);
+            }
+        }
+    }
 
-	@RequestMapping(path="/{id}/image", method = RequestMethod.GET)
+    @RequestMapping(path = "/{id}/image", method = RequestMethod.GET)
     @ResponseBody
     public ResponseEntity<InputStreamResource> productImage(@PathVariable long id) throws FileNotFoundException {
-    	MimetypesFileTypeMap mimeTypesMap = new MimetypesFileTypeMap();
-    	
-    	logger.debug("Product Image Request for " + id);
-    	logger.info("Using imagePath [" + imagePath + "]");
-    	
-    	Product returnProduct = productService.findById(id);
-    	String imageFilePath = null;
-    	if (returnProduct != null) {
-    		if (!imagePath.endsWith("/")) {
-    			imagePath = imagePath + "/";
-    		}
-    		imageFilePath = imagePath + returnProduct.getFullImageName();
-    	} 
-    	File imageFile = new File(imageFilePath);
-    	
-    	return ResponseEntity.ok()
+        MimetypesFileTypeMap mimeTypesMap = new MimetypesFileTypeMap();
+
+        logger.debug("Product Image Request for " + id);
+        logger.info("Using imagePath [" + imagePath + "]");
+
+        Product returnProduct = productService.findById(id);
+        String imageFilePath = null;
+        if (returnProduct != null) {
+            if (!imagePath.endsWith("/")) {
+                imagePath = imagePath + "/";
+            }
+            imageFilePath = imagePath + returnProduct.getFullImageName();
+        }
+        File imageFile = new File(imageFilePath);
+
+        return ResponseEntity.ok()
                 .contentLength(imageFile.length())
                 .contentType(MediaType.parseMediaType(mimeTypesMap.getContentType(imageFile)))
                 .body(new InputStreamResource(new FileInputStream(imageFile)));
     }
-    
+
     @RequestMapping(path = "/about")
     public String aboutCartShop() {
-    	logger.warn("Happy Easter! Someone actually clicked on About.");
-    	return("about");
+        logger.warn("Happy Easter! Someone actually clicked on About.");
+        return ("about");
     }
 
 

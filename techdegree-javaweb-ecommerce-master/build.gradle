@@ -13,8 +13,8 @@ apply plugin: 'idea'
 apply plugin: 'spring-boot'
 
 jar {
-	baseName = 'eCommerce'
-	version = '0.1.0'
+    baseName = 'eCommerce'
+    version = '0.1.0'
 }
 
 repositories {
@@ -31,7 +31,7 @@ dependencies {
 
     // The production code uses the SLF4J logging API at compile time
     compile 'org.slf4j:slf4j-api:1.7.13'
-    
+
     compile("com.h2database:h2")
 
     testCompile("org.springframework.boot:spring-boot-starter-test")

@@ -6,11 +6,11 @@ import org.springframework.data.domain.Pageable;
 
 public interface ProductService {
 
-	public Iterable<Product> findAll();
-	
-	public Page<Product> findAll(Pageable pageable);
-	
-	public Product findById(Long id);
+    public Iterable<Product> findAll();
 
-	public void checkQuantity(int addedQuantity, int productQuantity ) throws QuantityException;
+    public Page<Product> findAll(Pageable pageable);
+
+    public Product findById(Long id);
+
+    public void checkQuantity(int addedQuantity, int productQuantity) throws QuantityException;
 }

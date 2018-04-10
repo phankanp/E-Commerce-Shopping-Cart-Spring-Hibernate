@@ -2,7 +2,8 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/techdegree-javaweb-ecommerce_V2.iml" filepath="$PROJECT_DIR$/.idea/techdegree-javaweb-ecommerce_V2.iml" />
+      <module fileurl="file://$PROJECT_DIR$/techdegree-javaweb-ecommerce-master/src/main/main.iml" filepath="$PROJECT_DIR$/techdegree-javaweb-ecommerce-master/src/main/main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/techdegree-javaweb-ecommerce-master/src/test/test.iml" filepath="$PROJECT_DIR$/techdegree-javaweb-ecommerce-master/src/test/test.iml" />
     </modules>
   </component>
 </project>
