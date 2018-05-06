@@ -1,6 +1,6 @@
-# Steps
+Takes an existing e-commerce shopping cart application and identify bugs, fix them, and add new feature enhancements to improve the application&#39;s quality and functionality.
 
-Take an existing e-commerce shopping cart application and identify bugs, fix them, and add new feature enhancements to improve the application&#39;s quality and functionality.
+# Steps
 
 - Bug fix: Add form validation to the coupon code field in the first step of the checkout process. A coupon code will be considered valid if it contains between 5 and 10 characters. A unit test should also be added to verify that the added validation is working.
 - Bug fix: Ensure that enough products are in stock before adding to the shopping cart. Whether adding products to the cart from product detail pages or updating an product&#39;s quantity from the cart view, more products than are in stock can be added to the cart. Fix this issue and add a unit test to cover this scenario.
