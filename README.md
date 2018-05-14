@@ -1,4 +1,4 @@
-Takes an existing e-commerce shopping cart application and identify bugs, fix them, and add new feature enhancements to improve the application&#39;s quality and functionality.
+Takes an existing e-commerce shopping cart application and identifies bugs, fixes them, and adds new feature enhancements to improve the application's quality and functionality.
 
 # Steps
 
